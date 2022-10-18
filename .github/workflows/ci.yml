@@ -1,0 +1,45 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: build output dir
+      run: mkdir output
+    - name: Build
+      run: |
+            cargo build --release
+            cp target/release/octool .
+            zip osx_octool.zip octool README.md LICENSE tool_config_files/octool_config.json
+            mv osx_octool.zip output
+            rm octool
+            cross build --target x86_64-pc-windows-gnu --release
+            cp target/x86_64-pc-windows-gnu/release/octool.exe .
+            zip windows_octool.zip octool.exe README.md LICENSE tool_config_files/octool_config.json
+            mv windows_octool.zip output
+            rm octool.exe
+            cross build --target x86_64-unknown-linux-gnu --release
+            cp target/x86_64-unknown-linux-gnu/release/octool .
+            zip linux_octool.zip octool README.md LICENSE tool_config_files/octool_config.json
+            mv linux_octool.zip output
+            rm octool
+    - name: Upload to Release
+      if: github.event_name == 'release'
+      uses: svenstaro/upload-release-action@133984371c30d34e38222a64855679a414cb7575
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: output/*.zip
+        tag: ${{ github.ref }}
+        file_glob: true
